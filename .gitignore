@@ -6,6 +6,18 @@ __pycache__/
 # C extensions
 *.so
 
+# Stickity Stacks user data
+stickity_stacks_notes.json
+
+# Python stuff (should already be there)
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
 # Distribution / packaging
 .Python
 build/
