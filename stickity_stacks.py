@@ -11,6 +11,9 @@ class StickyNote(Gtk.Window):
         super().__init__(title="Stickity Stacks", decorated=False)
         self.set_default_size(260, 200)
         self.set_resizable(True)
+        
+        # Add CSS class to main window for more specific targeting
+        self.add_css_class("sticky-note-window")
 
         # Persistence file
         self.data_file = "stickity_stacks_notes.json"
@@ -26,12 +29,12 @@ class StickyNote(Gtk.Window):
         self.current_note_index = 0
         self.note_counter = 1
 
-        # CSS provider at USER priority to override theme
+        # CSS provider at APPLICATION priority to override theme
         self.css = Gtk.CssProvider()
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(),
             self.css,
-            Gtk.STYLE_PROVIDER_PRIORITY_USER
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
         # Layout: Overlay with Stack
@@ -169,20 +172,22 @@ class StickyNote(Gtk.Window):
             font_css = f'"{fam}" {sz}px'
         except:
             font_css = '"Sans" 15px'
+            fam = "Sans"
+            sz = 15
 
         css = f"""
-        .sticky-note {{
-            background: {self.current_bg};
-            color:      {self.current_fg};
-            font:       {font_css};
+        /* Use more specific selectors and !important to override theme */
+        window.sticky-note-window .sticky-note,
+        window.sticky-note-window .sticky-note textview,
+        window.sticky-note-window .sticky-note textview text {{
+            background: {self.current_bg} !important;
+            color:      {self.current_fg} !important;
+            font-family: {fam} !important;
+            font-size:   {sz}px !important;
             padding:    6px;
             border:     none;
         }}
-        .sticky-note textview,
-        .sticky-note text {{
-            background: {self.current_bg};
-            color:      {self.current_fg};
-        }}
+        
         .gear-button, .trash-button {{
             background: transparent;
             border:     none;
@@ -251,9 +256,19 @@ class StickyNote(Gtk.Window):
         bb.connect("notify::rgba", self.on_bg_color_changed)
         box.append(bb)
 
-        # Close (save notes & prefs)
+        # Close button with proper styling reapplication
         close = Gtk.Button(label="Close")
-        close.connect("clicked", lambda *_: (self.save_notes(), self.save_prefs(), win.close()))
+        def on_close_clicked(*_):
+            self.save_notes()
+            self.save_prefs()
+            # Force reapply CSS after closing settings
+            self.apply_css()
+            # Also reapply CSS classes to all textviews
+            for note in self.note_stack:
+                note['textview'].set_css_classes(["sticky-note"])
+            win.close()
+        
+        close.connect("clicked", on_close_clicked)
         box.append(close)
 
         win.set_child(box)
@@ -311,16 +326,26 @@ class StickyNote(Gtk.Window):
 
     def save_prefs(self):
         try:
-            full = json.load(open(self.data_file, 'r', encoding='utf-8'))
-        except:
-            full = {}
-        full['_prefs'] = {
-            'font': self.current_font,
-            'fg':   self.current_fg,
-            'bg':   self.current_bg
-        }
-        with open(self.data_file, 'w', encoding='utf-8') as f:
-            json.dump(full, f, ensure_ascii=False, indent=2)
+            # Try to load existing data
+            if os.path.isfile(self.data_file):
+                with open(self.data_file, 'r', encoding='utf-8') as f:
+                    full = json.load(f)
+            else:
+                full = {}
+            
+            # Update preferences
+            full['_prefs'] = {
+                'font': self.current_font,
+                'fg':   self.current_fg,
+                'bg':   self.current_bg
+            }
+            
+            # Write back to file
+            with open(self.data_file, 'w', encoding='utf-8') as f:
+                json.dump(full, f, ensure_ascii=False, indent=2)
+                
+        except Exception as e:
+            print(f"Error saving preferences: {e}")
 
     def load_prefs(self):
         if not os.path.isfile(self.data_file):
