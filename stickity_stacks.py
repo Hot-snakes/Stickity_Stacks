@@ -169,47 +169,40 @@ class StickyNote(Gtk.Window):
             desc = Pango.FontDescription(self.current_font)
             fam  = desc.get_family()
             sz   = desc.get_size() // Pango.SCALE or 15
-            font_css = f'"{fam}" {sz}px'
         except:
-            font_css = '"Sans" 15px'
             fam = "Sans"
             sz = 15
 
         css = f"""
-        /* Use more specific selectors and !important to override theme */
-        window.sticky-note-window .sticky-note,
-        window.sticky-note-window .sticky-note textview,
-        window.sticky-note-window .sticky-note textview text {{
-            background: {self.current_bg} !important;
-            color:      {self.current_fg} !important;
-            font-family: {fam} !important;
-            font-size:   {sz}px !important;
-            padding:    6px;
-            border:     none;
-        }}
-        
-        .gear-button, .trash-button {{
-            background: transparent;
-            border:     none;
-            padding:    2px;
-            color:      {self.current_fg};
-            -gtk-icon-transform: none;
-        }}
-        .dog-ear-button {{
-            background: rgba(0,0,0,0.1);
-            border:     none;
-            padding:    4px 8px;
-            border-radius: 8px 0 0 0;
-            font-size:  12px;
-            font-weight: bold;
-            color:      rgba(0,0,0,0.6);
-            box-shadow: -2px -2px 4px rgba(0,0,0,0.2);
-        }}
-        .dog-ear-button:hover {{
-            background: rgba(0,0,0,0.15);
-            box-shadow: -3px -3px 6px rgba(0,0,0,0.3);
-        }}
-        """
+.sticky-note-window .sticky-note textview {{
+    background-color: {self.current_bg};
+    color: {self.current_fg};
+    font-family: "{fam}";
+    font-size: {sz}px;
+}}
+.sticky-note-window .sticky-note text {{
+    color: {self.current_fg};
+}}
+.gear-button, .trash-button {{
+    background-color: transparent;
+    border: none;
+    padding: 2px;
+    color: {self.current_fg};
+}}
+.dog-ear-button {{
+    background-color: rgba(0,0,0,0.1);
+    border: none;
+    padding: 4px 8px;
+    border-radius: 8px 0 0 0;
+    font-size: 12px;
+    font-weight: bold;
+    color: rgba(0,0,0,0.6);
+    /* Note: box-shadow is not supported in GTK CSS, so you may remove or adjust this property if you get errors. */
+}}
+.dog-ear-button:hover {{
+    background-color: rgba(0,0,0,0.15);
+}}
+"""
         self.css.load_from_data(css.encode())
 
     def on_drag_begin(self, gesture, _, x, y):
