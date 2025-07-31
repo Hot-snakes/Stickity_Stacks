@@ -17,7 +17,7 @@ class StickyNote(Gtk.Window):
 
         # Persistence file
         self.data_file = "stickity_stacks_notes.json"
-        # Default style values
+        # Default style values with better font fallbacks
         self.current_font = "Sans 15"
         self.current_fg   = "#1a1a1a"
         self.current_bg   = "#fffad1"
@@ -108,9 +108,29 @@ class StickyNote(Gtk.Window):
         # Apply initial CSS styling
         self.apply_css()
 
+    def get_font_fallbacks(self, primary_font):
+        """Get a list of font fallbacks for better cross-distro compatibility"""
+        fallbacks = [
+            primary_font,
+            "DejaVu Sans",
+            "Liberation Sans", 
+            "Ubuntu",
+            "Noto Sans",
+            "sans-serif"
+        ]
+        return fallbacks
+
     def create_new_note(self, title, content=""):
         tv = Gtk.TextView(wrap_mode=Gtk.WrapMode.WORD_CHAR)
-        tv.set_css_classes(["sticky-note"])
+        tv.set_css_classes(["sticky-note-textview"])
+        
+        # Apply font directly to textview as backup
+        try:
+            desc = Pango.FontDescription(self.current_font)
+            tv.override_font(desc)
+        except:
+            print(f"Warning: Could not apply font {self.current_font}")
+        
         if content:
             buf = tv.get_buffer()
             buf.set_text(content)
@@ -167,43 +187,82 @@ class StickyNote(Gtk.Window):
     def apply_css(self):
         try:
             desc = Pango.FontDescription(self.current_font)
-            fam  = desc.get_family()
-            sz   = desc.get_size() // Pango.SCALE or 15
-        except:
-            fam = "Sans"
-            sz = 15
+            family = desc.get_family()
+            size = desc.get_size() // Pango.SCALE or 15
+            
+            if not family:
+                family = "Sans"
+                
+        except Exception as e:
+            print(f"Font parsing error: {e}")
+            family = "Sans"
+            size = 15
+
+        # Create font fallback list
+        font_fallbacks = self.get_font_fallbacks(family)
+        font_list = ", ".join([f'"{font}"' for font in font_fallbacks])
 
         css = f"""
-.sticky-note-window .sticky-note textview {{
-    background-color: {self.current_bg};
-    color: {self.current_fg};
-    font-family: "{fam}";
-    font-size: {sz}px;
-}}
-.sticky-note-window .sticky-note text {{
-    color: {self.current_fg};
-}}
-.gear-button, .trash-button {{
-    background-color: transparent;
-    border: none;
-    padding: 2px;
-    color: {self.current_fg};
-}}
-.dog-ear-button {{
-    background-color: rgba(0,0,0,0.1);
-    border: none;
-    padding: 4px 8px;
-    border-radius: 8px 0 0 0;
-    font-size: 12px;
-    font-weight: bold;
-    color: rgba(0,0,0,0.6);
-    /* Note: box-shadow is not supported in GTK CSS, so you may remove or adjust this property if you get errors. */
-}}
-.dog-ear-button:hover {{
-    background-color: rgba(0,0,0,0.15);
-}}
-"""
-        self.css.load_from_data(css.encode())
+        /* Main window styling */
+        .sticky-note-window {{
+            background-color: {self.current_bg};
+        }}
+        
+        /* TextView styling with font fallbacks */
+        .sticky-note-textview {{
+            background-color: {self.current_bg};
+            color: {self.current_fg};
+            font-family: {font_list};
+            font-size: {size}px;
+            padding: 8px;
+            border: none;
+        }}
+        
+        .sticky-note-textview text {{
+            background-color: {self.current_bg};
+            color: {self.current_fg};
+            font-family: {font_list};
+            font-size: {size}px;
+        }}
+        
+        /* Button styling */
+        .gear-button, .trash-button {{
+            background-color: transparent;
+            border: none;
+            padding: 2px;
+            color: {self.current_fg};
+            min-width: 24px;
+            min-height: 24px;
+        }}
+        
+        .gear-button:hover, .trash-button:hover {{
+            background-color: rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }}
+        
+        /* Dog-ear button */
+        .dog-ear-button {{
+            background-color: rgba(0,0,0,0.1);
+            border: none;
+            padding: 4px 8px;
+            border-radius: 8px 0 0 0;
+            font-size: 12px;
+            font-weight: bold;
+            color: rgba(0,0,0,0.6);
+            min-width: 32px;
+            min-height: 24px;
+        }}
+        
+        .dog-ear-button:hover {{
+            background-color: rgba(0,0,0,0.15);
+        }}
+        """
+        
+        try:
+            self.css.load_from_data(css.encode())
+            print(f"CSS applied successfully with font: {family} {size}px")
+        except Exception as e:
+            print(f"CSS application error: {e}")
 
     def on_drag_begin(self, gesture, _, x, y):
         surf = self.get_surface()
@@ -225,7 +284,14 @@ class StickyNote(Gtk.Window):
         box.append(Gtk.Label(label="Font:", halign=Gtk.Align.START))
         fd = Gtk.FontDialog(title="Choose Font")
         fb = Gtk.FontDialogButton(dialog=fd)
-        fb.set_font_desc(Pango.FontDescription(self.current_font))
+        
+        try:
+            current_desc = Pango.FontDescription(self.current_font)
+            fb.set_font_desc(current_desc)
+        except:
+            # Fallback to default font
+            fb.set_font_desc(Pango.FontDescription("Sans 15"))
+            
         fb.connect("notify::font-desc", self.on_font_changed)
         box.append(fb)
 
@@ -254,11 +320,7 @@ class StickyNote(Gtk.Window):
         def on_close_clicked(*_):
             self.save_notes()
             self.save_prefs()
-            # Force reapply CSS after closing settings
-            self.apply_css()
-            # Also reapply CSS classes to all textviews
-            for note in self.note_stack:
-                note['textview'].set_css_classes(["sticky-note"])
+            self.apply_styling_to_all_notes()
             win.close()
         
         close.connect("clicked", on_close_clicked)
@@ -267,25 +329,40 @@ class StickyNote(Gtk.Window):
         win.set_child(box)
         win.present()
 
+    def apply_styling_to_all_notes(self):
+        """Apply current styling to all existing notes"""
+        self.apply_css()
+        
+        # Apply font directly to each textview as backup
+        try:
+            desc = Pango.FontDescription(self.current_font)
+            for note in self.note_stack:
+                tv = note['textview']
+                tv.override_font(desc)
+                tv.set_css_classes(["sticky-note-textview"])
+        except Exception as e:
+            print(f"Error applying font to textviews: {e}")
+
     def on_font_changed(self, btn, _):
         desc = btn.get_font_desc()
         if desc:
             self.current_font = desc.to_string()
-            self.apply_css()
-            for note in self.note_stack:
-                note['textview'].set_css_classes(["sticky-note"])
+            print(f"Font changed to: {self.current_font}")
+            self.apply_styling_to_all_notes()
 
     def on_text_color_changed(self, btn, _):
         rgba = btn.get_rgba()
         if rgba:
             self.current_fg = rgba.to_string()
-            self.apply_css()
+            print(f"Text color changed to: {self.current_fg}")
+            self.apply_styling_to_all_notes()
 
     def on_bg_color_changed(self, btn, _):
         rgba = btn.get_rgba()
         if rgba:
             self.current_bg = rgba.to_string()
-            self.apply_css()
+            print(f"Background color changed to: {self.current_bg}")
+            self.apply_styling_to_all_notes()
 
     def save_notes(self):
         notes = []
@@ -294,7 +371,7 @@ class StickyNote(Gtk.Window):
             txt = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False)
             notes.append({'title': n['title'], 'content': txt})
         try:
-            full = json.load(open(self.data_file, 'r', encoding='utf-8'))
+            full = json.load(open(self.data_file, 'r', encoding='utf-8')) if os.path.exists(self.data_file) else {}
         except:
             full = {}
         full['notes'] = notes
@@ -314,7 +391,8 @@ class StickyNote(Gtk.Window):
                 self.create_new_note(entry.get('title', f"Note {idx}"),
                                      entry.get('content', ""))
             return True
-        except:
+        except Exception as e:
+            print(f"Error loading notes: {e}")
             return False
 
     def save_prefs(self):
@@ -337,6 +415,8 @@ class StickyNote(Gtk.Window):
             with open(self.data_file, 'w', encoding='utf-8') as f:
                 json.dump(full, f, ensure_ascii=False, indent=2)
                 
+            print(f"Preferences saved: font={self.current_font}, fg={self.current_fg}, bg={self.current_bg}")
+                
         except Exception as e:
             print(f"Error saving preferences: {e}")
 
@@ -349,8 +429,9 @@ class StickyNote(Gtk.Window):
             self.current_font = prefs.get('font', self.current_font)
             self.current_fg   = prefs.get('fg',   self.current_fg)
             self.current_bg   = prefs.get('bg',   self.current_bg)
-        except:
-            pass
+            print(f"Preferences loaded: font={self.current_font}, fg={self.current_fg}, bg={self.current_bg}")
+        except Exception as e:
+            print(f"Error loading preferences: {e}")
 
 def main():
     app = Gtk.Application(application_id="com.stickity.stacks")
