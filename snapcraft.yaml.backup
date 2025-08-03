@@ -15,9 +15,9 @@ base: core22
 confinement: strict
 grade: stable
 license: GPL-3.0
-website: https://github.com/Hot-snakes/Stickity_Stacks
-source-code: https://github.com/Hot-snakes/Stickity_Stacks
-issues: https://github.com/Hot-snakes/Stickity_Stacks/issues
+website: https://github.com/Hot-snakes/stickity-stacks
+source-code: https://github.com/Hot-snakes/stickity-stacks
+issues: https://github.com/Hot-snakes/stickity-stacks/issues
 
 architectures:
   - build-on: amd64
@@ -52,8 +52,6 @@ parts:
       - gir1.2-pango-1.0
     organize:
       stickity_stacks.py: bin/stickity_stacks.py
-      stickity_stacks.png: usr/share/pixmaps/stickity_stacks.png
-      com.stickity.stacks.desktop: usr/share/applications/com.stickity.stacks.desktop
     override-build: |
       craftctl default
       chmod +x $CRAFT_PART_INSTALL/bin/stickity_stacks.py

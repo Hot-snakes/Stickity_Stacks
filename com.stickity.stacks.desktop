@@ -3,9 +3,10 @@
 Version=1.0
 Type=Application
 Name=Stickity Stacks
-Comment=Lightweight stacking sticky notes for GTK4 desktops
-Exec=stickity_stacks.py
-Icon=stickity_stacks.png
+Comment=Frameless GTK4 sticky notes with stacking feature
+Exec=stickity-stacks
+Icon=stickity_stacks
 Terminal=false
-Categories=Utility;Office;
+Categories=Utility;Office;TextEditor;
 StartupNotify=true
+Keywords=notes;sticky;reminder;memo;note-taking;
