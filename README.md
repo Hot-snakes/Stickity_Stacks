@@ -6,7 +6,7 @@
 A frameless, lightweight GTK4 sticky note application written in Python. Create, stack, and customize multiple sticky notes with persistent storage and seamless desktop integration.
 
 <div align="center">
-  <img src="stickity-stacks.png" alt="Stickity Stacks Icon" width="128">
+  <img src="stickity_stacks.png" alt="Stickity Stacks Icon" width="128">
 </div>
 
 ## 📸 Screenshots
