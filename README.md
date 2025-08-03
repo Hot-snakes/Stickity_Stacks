@@ -1,7 +1,5 @@
 # Stickity Stacks
 
-![GitHub Repo stars](https://img.shields.io/github/stars/Hot-snakes/stickity-stacks?style=social)
-![GitHub forks](https://img.shields.io/github/forks/Hot-snakes/stickity-stacks?style=social)
 ![Python Version](https://img.shields.io/badge/python-3.6%2B-blue)
 ![GTK](https://img.shields.io/badge/GTK-4-green)
 
